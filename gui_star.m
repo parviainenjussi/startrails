@@ -1,6 +1,11 @@
 function gui_star
-%GUI_STAR Make Start
+% GUI_STAR Stack star trails
+%(c) Jussi Parviainen
+
 folder = 'C:\Users\Mörököllit\Pictures\2018-10-29 leikkimokki\';
+
+% Close all other figures
+close all
 
 % Initialize variables that are shared with subfunctions
 file_list = [];
@@ -51,6 +56,7 @@ h_weight = uicontrol(hfig,'Style','popupmenu');
 h_weight.Position = [150 400, 100, 100];
 h_weight.String = weight_list;
 h_weight.Callback = @weight_callback;
+h_weight.Enable = 'off';
 
 % Normalize all units, objects resize automatically
 h_load.Units = 'normalized';
@@ -66,6 +72,11 @@ hfig.Units = 'normalized';
     function load_callback(~,~)
         [file_list, path_list] = uigetfile(fullfile(folder, '.jpg'), ...
             'JPG Files (*.jpg)','MultiSelect','on');
+        if ~iscell(file_list)
+             errordlg('Select at least 2 images');
+        end
+        % Make sure that figures are sorted by name
+        file_list = sort(file_list);
         im = imread(fullfile(path_list,file_list{1}));
         imres = size(im);
         r_im = im(:,:,1);
@@ -87,16 +98,28 @@ hfig.Units = 'normalized';
 
 % Load images Callback
     function stack_callback(~,~)
+        
+        % Hide buttons
+        h_load.Enable = 'off';
+        h_save.Enable = 'off';
+        h_stack.Enable = 'off';
+        h_weight.Enable = 'off';
 
         im = imread(fullfile(path_list,file_list{1}));
+
+        % Reset max vectors to zero
         max_r =max_r*0;
         max_g =max_g*0;
         max_b =max_b*0;
         
+        % Make progress bar with cancel button
         message = sprintf('Stacking %i/%i',0,nFiles);
         h_wait = waitbar(0,message, ...
             'CreateCancelBtn','setappdata(gcbf,''canceling'',1)');
         setappdata(h_wait,'canceling',0);
+        
+        % Loop all the images and always select the pixel that has maximum
+        % intesity
         for i = 1:nFiles
             im = imread(fullfile(path_list,file_list{i}));
             message = sprintf('Stacking %i/%i',i,nFiles);
@@ -105,13 +128,18 @@ hfig.Units = 'normalized';
                 message = sprintf('Stacking %i/%i',i,nFiles);
                 h_wait = waitbar(0,message);
             end
+            % Break if cancel button was pressed
             if getappdata(h_wait,'canceling')
                 break
             end
+            % Update progress bar
             h_wait = waitbar(i/nFiles,h_wait,message);
+            % Shift progress bar always upmost figure
+            figure(h_wait);
             r_im = im(:,:,1);
             g_im = im(:,:,2);
             b_im = im(:,:,3);
+            % Select the pixels with maximum weighted intensity
             max_r = max(r_im(:)*weight(i),max_r);
             max_g = max(g_im(:)*weight(i),max_g);
             max_b = max(b_im(:)*weight(i),max_b);
@@ -121,6 +149,12 @@ hfig.Units = 'normalized';
             imshow(im, 'Parent', h_axes)
         end
         delete(h_wait)
+        
+        % Enable buttons after stacking is compete
+        h_load.Enable = 'on';
+        h_save.Enable = 'on';
+        h_stack.Enable = 'on';
+        h_weight.Enable = 'on';
     end
 
     function save_callback(~,~)
@@ -132,14 +166,19 @@ hfig.Units = 'normalized';
     function weight_callback(src,~)
         switch src.Value
             case 1
-                weight = 1;                
+                weight = ones(nFiles,1);                
             case 2
                 weight = linspace(0,1,nFiles);
             case 3
                 weight = linspace(1,0,nFiles);
             case 4
-                weight = hanning(nFiles);                
+                weight = hanning2(nFiles);                
         end
+    end
+
+    function out = hanning2(N)
+        i = 0:N-1;
+        out = 0.5*(1-cos(2*pi*i/(N-1)));
     end
 end
 
