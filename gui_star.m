@@ -8,12 +8,14 @@ handleaxes = axes('Parent', hfig,...
     'Position',[350,100,1000,550]);
 
 file_list = [];
+nFiles = 0;
 path_list = [];
 imres = [];
-max_r =[];
-max_g =[];
-max_b =[];
+max_r =0;
+max_g =0;
+max_b =0;
 im = [];
+weight = 1;
 h_load = uicontrol('Parent',hfig,...
     'Style','pushbutton',...
     'String', 'Load Images', ...
@@ -35,8 +37,17 @@ h_save = uicontrol('Parent',hfig,...
     'Position', [50 300, 100, 100], ...
     'Callback', @(src,eventdata)save_callback(src,eventdata) );
 
-    % Load images Callback
-    function load_callback(src,event)
+weight_list = {'normal','fade in','fade out','fade in&out'};
+
+% Plot dropdown menu for weight
+h_weight = uicontrol(hfig,'Style','popupmenu');
+h_weight.Position = [150 400, 100, 100];
+h_weight.String = weight_list;
+h_weight.Callback = @weight_callback;
+
+
+% Load images Callback
+    function load_callback(~,~)
         [file_list, path_list] = uigetfile(fullfile(folder, '.jpg'), ...
             'All Files (*.*)','MultiSelect','on');
         im = imread(fullfile(path_list,file_list{1}));
@@ -47,15 +58,22 @@ h_save = uicontrol('Parent',hfig,...
         max_r = r_im(:);
         max_g = g_im(:);
         max_b = b_im(:);
+        weight = ones(size(max_b));
         imshow(im, 'Parent', handleaxes)
+        nFiles = numel(file_list);
     end
 
-    % Load images Callback
-    function stack_callback(src,event)
-        nFiles = numel(file_list);
+
+% Load images Callback
+    function stack_callback(~,~)
         if nFiles < 2
+            errordlg('Load at least 2 images')
             return;
         end
+        im = imread(fullfile(path_list,file_list{1}));
+        max_r =max_r*0;
+        max_g =max_g*0;
+        max_b =max_b*0;
         h_wait = waitbar(0,'stacking');
         for i = 1:nFiles
             im = imread(fullfile(path_list,file_list{i}));
@@ -63,9 +81,9 @@ h_save = uicontrol('Parent',hfig,...
             r_im = im(:,:,1);
             g_im = im(:,:,2);
             b_im = im(:,:,3);
-            max_r = max(r_im(:),max_r);
-            max_g = max(g_im(:),max_g);
-            max_b = max(b_im(:),max_b);
+            max_r = max(r_im(:)*weight(i),max_r);
+            max_g = max(g_im(:)*weight(i),max_g);
+            max_b = max(b_im(:)*weight(i),max_b);
             im(:,:,1) = reshape(max_r,imres(1),imres(2));
             im(:,:,2) = reshape(max_g,imres(1),imres(2));
             im(:,:,3) = reshape(max_b,imres(1),imres(2));
@@ -78,7 +96,19 @@ h_save = uicontrol('Parent',hfig,...
         [ffile, ffolder] =  uiputfile('*.jpg');
         full_file = fullfile(ffolder,ffile);
         imwrite(im,full_file,'jpg')
-        
+    end
+
+    function weight_callback(src,~)
+        switch src.Value
+            case 1
+                weight = 1;                
+            case 2
+                weight = linspace(0,1,nFiles);
+            case 3
+                weight = linspace(1,0,nFiles);
+            case 4
+                weight = hanning(nFiles);                
+        end
     end
 end
 
