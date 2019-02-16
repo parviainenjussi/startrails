@@ -31,7 +31,7 @@ h_load = uicontrol('Parent',hfig,...
     'Style','pushbutton',...
     'String', 'Load Images', ...
     'Value', 0, ...
-    'Position', [50 550, 100, 50], ...
+    'Position', [50 500, 100, 50], ...
     'Callback', @(src,eventdata)load_callback(src,eventdata) );
 
 h_listbox = uicontrol('Parent',hfig,...
@@ -72,7 +72,7 @@ h_save.Units = 'normalized';
 h_stack.Units = 'normalized';
 h_weight.Units = 'normalized';
 h_axes.Units = 'normalized';
-h_listbox.Units = 'normalized';
+h_a.Units = 'normalized';
 hfig.Units = 'normalized';
 
 
@@ -82,12 +82,7 @@ hfig.Units = 'normalized';
         [file_list, path_list] = uigetfile(fullfile(folder, '.jpg'), ...
             'JPG Files (*.jpg)','MultiSelect','on');
         if ~iscell(file_list)
-            errordlg('Select at least 2 images');
-            set(h_listbox,'string','No Images');
-            h_save.Enable = 'off';
-            h_stack.Enable = 'off';
-            h_weight.Enable = 'off';
-            h_listbox.Enable = 'off';
+             errordlg('Select at least 2 images');
         end
         % Make sure that figures are sorted by name
         file_list = sort(file_list);
@@ -107,7 +102,6 @@ hfig.Units = 'normalized';
             h_save.Enable = 'on';
             h_stack.Enable = 'on';
             h_weight.Enable = 'on';
-            h_listbox.Enable = 'on';
         end
     end
 
